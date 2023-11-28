@@ -292,14 +292,16 @@ func apply_milk_bonus():
 func apply_bomb_bonus():
 	var next_tile = character.current_tile.next_tile
 	for i in range(PlayerStats.bomb_bonus_amount):
-		if next_tile and next_tile.obstacle:
-			next_tile.obstacle.remove()
-			score += 1
-		next_tile = next_tile.next_tile
+		if next_tile:
+			if next_tile and next_tile.obstacle:
+				next_tile.obstacle.remove()
+				score += 1
+			next_tile = next_tile.next_tile
 
 func change_rune_symbol():
 	var next_tile = character.current_tile.next_tile
 	for i in range(PlayerStats.change_symbol_amount):
-		if next_tile and next_tile.obstacle:
-			next_tile.obstacle.set_symbols_to_hline()
-		next_tile = next_tile.next_tile
+		if next_tile:
+			if next_tile and next_tile.obstacle:
+				next_tile.obstacle.set_symbols_to_hline()
+			next_tile = next_tile.next_tile
