@@ -3,11 +3,14 @@ extends TextureRect
 signal show_bonus_screen
 
 @export var can_rotate = true
-@export var speed = 10
+@export var speed = 700
 @onready var skin_bonus: Sprite2D = $SkinBonus
 @onready var bonus_icon: Sprite2D = $"../VBoxContainer/MarginContainer/BonusIcon"
 @onready var button_double: Button = $"../VBoxContainer/ButtonDouble"
 @onready var label_count: Label = $"../VBoxContainer/MarginContainer/LabelCount"
+@onready var animation_tap_to_spin: AnimationPlayer = $"../../AnimationTapToSpin"
+@onready var margin_container: MarginContainer = $MarginContainer
+
 
 
 var bomb_icon = load("res://themes/forest/assets/game boost2.png")
@@ -23,6 +26,9 @@ var bonus_skin
 var type
 var type_skin
 var coin_count = 20
+var skin_for_spin: Array
+var available_skins: Array = []
+var bought_skins = PlayerStats.get_bought_skins()
 
 enum section {
 	Skines,
@@ -34,18 +40,18 @@ enum section {
 }
 
 func _ready() -> void:
-	
+	animation_tap_to_spin.play("tap_to_spin_anim")
 	set_random_bonus_skin()
 
 func _process(_delta: float) -> void:
 	if is_rotate == true:
-		rotate_wheel()
+		rotate_wheel(delta)
 		is_revard = false
 		can_rotate = true
 		
-func rotate_wheel():
+func rotate_wheel(delta):
 	var sp = speed
-	$Arrow.rotation_degrees += sp
+	$Arrow.rotation_degrees += sp * delta
 	await get_tree().create_timer(5).timeout
 	sp = sp * 0.001
 	is_rotate = false
@@ -53,11 +59,12 @@ func rotate_wheel():
 		angle_arrow = fmod($Arrow.rotation_degrees, 360)
 	get_revard(angle_arrow)
 	
-	
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.is_pressed() and can_rotate:
 		is_rotate = true
 		can_rotate = false
+		animation_tap_to_spin.stop()
+		margin_container.hide()
 
 func get_revard(angle) -> int:
 	if is_revard == false:
@@ -82,8 +89,8 @@ func get_revard(angle) -> int:
 		add_bonus_to_data(revard)
 	return revard
 
-func add_bonus_to_data(revard):
-	match revard:
+func add_bonus_to_data(_revard):
+	match _revard:
 		0:
 			add_bonus_skin_icon(type, type_skin)
 			button_double.visible = false
@@ -117,11 +124,13 @@ func add_bonus_to_data(revard):
 			label_count.visible = true
 			label_count.text = "*" + str(coin_count)
 			PlayerStats.add_coins(coin_count)
+	await get_tree().create_timer(3.0).timeout
 	show_bonus_screen.emit()
 
 func set_random_bonus_skin():
-	type = Skins.skins.keys().pick_random()
-	type_skin = Skins.skins[type].keys().pick_random()
+	var rand_skin = get_skin_for_spin().pick_random()
+	type = rand_skin[0]
+	type_skin = rand_skin[1]
 	skin_bonus.texture = Skins.get_texture_atlas(type)
 	var skin_rect = Skins.get_player_skin(type,type_skin)
 	skin_bonus.set_region_rect(skin_rect["rect"])
@@ -136,3 +145,14 @@ func add_bonus_skin_icon(type_body, skin):
 func add_bonus_icon(icon):
 	bonus_icon.region_enabled = false
 	bonus_icon.texture = icon
+
+func get_skin_for_spin() -> Array:
+	
+	for t in Skins.skins:
+		for skin in Skins.skins[t]:
+			if bought_skins.has([t, 0]):
+				available_skins.append([t, skin])
+	for skin in available_skins:
+		if !bought_skins.has(skin):
+			skin_for_spin.append(skin)
+	return skin_for_spin
